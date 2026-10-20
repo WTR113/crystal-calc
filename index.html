@@ -1,0 +1,442 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>晶石計算アプリ</title>
+<style>
+:root{--bg:#f6f7f9;--card:#fff;--text:#1d2330;--sub:#667085;--line:#e3e6ec;--accent:#2f6fed;--danger:#d92d20}
+@media (prefers-color-scheme:dark){:root{--bg:#12151c;--card:#1b202a;--text:#e8ebf2;--sub:#98a2b3;--line:#2c3340;--accent:#6b9bff;--danger:#f97066}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:15px/1.5 system-ui,"Hiragino Sans","Yu Gothic",sans-serif}
+main{max-width:900px;margin:0 auto;padding:20px 16px 48px}
+h1{font-size:20px;margin:0 0 16px}
+h2{font-size:16px;margin:0 0 12px}
+section{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px;margin-bottom:16px;overflow-x:auto}
+label{font-size:13px;color:var(--sub);display:block;margin-bottom:2px}
+input,select{font:inherit;color:inherit;background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:7px 9px;width:100%}
+button{font:inherit;border:1px solid var(--line);background:var(--card);color:var(--text);border-radius:6px;padding:7px 12px;cursor:pointer}
+button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+button.del{color:var(--danger)}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}
+.row>div{flex:1 1 130px}
+table{width:100%;border-collapse:collapse;min-width:520px}
+th,td{text-align:left;padding:7px 6px;border-bottom:1px solid var(--line)}
+th{font-size:12px;color:var(--sub);font-weight:600}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px}
+.stat{border:1px solid var(--line);border-radius:8px;padding:10px 12px}
+.stat .k{font-size:12px;color:var(--sub)}
+.stat .v{font-size:22px;font-weight:700;font-variant-numeric:tabular-nums}
+.stat .s{font-size:12px;color:var(--sub)}
+.hint{font-size:12px;color:var(--sub);margin:8px 0 0}
+.tools{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+</style>
+</head>
+<body>
+<main>
+<div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:16px">
+  <h1 style="margin:0">晶石計算アプリ</h1>
+  <button id="saveBtn">保存</button>
+</div>
+
+<section>
+  <h2>月間の獲得</h2>
+  <div class="row" style="margin-bottom:12px">
+    <div style="max-width:200px"><label>対象月</label><input type="month" id="month"></div>
+  </div>
+  <div class="cards" id="summary"></div>
+  <h3 style="font-size:14px;margin:16px 0 6px">ダメージ入力(その日の最大ダメージ)</h3>
+  <div class="row">
+    <div><label>日付</label><input type="date" id="d_date"></div>
+    <div><label>その日の最大ダメージ(例: 5.35G)</label><input type="text" id="d_dmg" placeholder="例: 5.35G"></div>
+    <div style="flex:0 0 auto"><button class="primary" id="addDay">追加/更新</button></div>
+  </div>
+  <h3 style="font-size:14px;margin:16px 0 6px">現在の保有数</h3>
+  <div class="row" id="offsets"></div>
+  <p class="hint">現在の保有数を入れると、「現在までの獲得」はその数になり、月末予測は「保有数 + 今後の獲得(今日以降の工場・ボーナス・ダメージ報酬)」になります。空欄ならアプリの計算値のみを使います。</p>
+  <table style="margin-top:14px">
+    <thead><tr><th>報酬</th><th class="num">現在までの獲得</th><th class="num">月末予測</th></tr></thead>
+    <tbody id="itemTotals"></tbody>
+  </table>
+  <table style="margin-top:14px">
+    <thead><tr><th>内訳</th><th>現在まで</th><th>月末予測</th></tr></thead>
+    <tbody id="sources"></tbody>
+  </table>
+  <p class="hint">月末予測 = 入力済みの最終日より後の日(攻撃できない曜日を除く)を「入力済み日の平均の最大ダメージ」で埋めて、週ごとに再計算した値です。報酬は受け取れる回数が増えた日の月に計上します。晶石工場は時間経過で計算します(現在まで=今月の経過時間×1時間あたりの生産量、月末予測=月の全時間×同)。</p>
+</section>
+
+<section>
+  <h2>交換所の購入シミュレーション</h2>
+  <div class="row" style="margin-bottom:12px">
+    <div style="max-width:220px"><label>プラン</label>
+      <select id="plan"><option value="paid">課金者用</option><option value="free">無課金者用</option></select></div>
+  </div>
+  <table>
+    <thead><tr><th class="num">優先順位</th><th>アイテム</th><th class="num">紫晶石数</th><th class="num">上限数</th><th class="num">必要紫晶石数</th><th class="num">購入数(選択)</th><th class="num">使用する晶石</th></tr></thead>
+    <tbody id="shop"></tbody>
+    <tfoot><tr style="font-weight:700"><td></td><td>合計</td><td></td><td></td><td class="num" id="shopNeedSum"></td><td class="num" id="shopBuySum"></td><td class="num" id="shopUsedSum"></td></tr></tfoot>
+  </table>
+  <div class="tools" style="margin:8px 0"><button id="autoBuy">優先順位順に自動で埋める(月末予測の晶石で)</button><button id="clearBuy">すべて0に戻す</button></div>
+  <p class="hint" id="shopSum"></p>
+  <p class="hint">購入数を選ぶと、必要な晶石を現在・月末予測と比べて、残りか不足を表示します。「自動で埋める」は優先順位の上から順に、上限数まで(足りなければ買える数まで)入れます。購入数はプランごとに保存されます。</p>
+</section>
+
+<section>
+  <h2>入力履歴</h2>
+  <table style="margin-top:14px">
+    <thead><tr><th>日付</th><th class="num">最大ダメージ</th><th class="num">週の最大</th><th>この日の獲得</th><th></th></tr></thead>
+    <tbody id="days"></tbody>
+  </table>
+</section>
+
+<section>
+  <h2>週ごとの進行(対象月にかかる週)</h2>
+  <table>
+    <thead><tr><th>週の開始日</th><th class="num">週の最大ダメージ</th><th>達成回数</th><th>週の獲得</th></tr></thead>
+    <tbody id="weeks"></tbody>
+  </table>
+</section>
+
+<section>
+  <h2>報酬ルール(週間ダメージ報酬・毎週リセット)</h2>
+  <table>
+    <thead><tr><th>進行度名</th><th class="num">開始(超えた後)</th><th class="num">終了(進行度の上限)</th><th class="num">ダメージ/回</th><th>報酬名</th><th class="num">1回の報酬数</th><th></th></tr></thead>
+    <tbody id="rules"></tbody>
+  </table>
+  <div class="tools"><button id="addRule">+ ルール追加</button><button id="resetRules">初期値に戻す</button><button id="delMode" class="del">削除</button></div>
+  <p class="hint">数値は K / M / G(例: 1.2G, 8M)で入力できます。「開始を超えた後、ダメージが◯M増えるごとに報酬1回」。上限を超えた分は報酬になりません。</p>
+  <p class="hint">読み方(武器破壊の例): 最大ダメージが 1.2G を超えると報酬が出始め、そこから 8M 増えるごとに 1回(晶石60個)。2.0G で打ち止め(100回)。つまり 1.5G なら (1.5G−1.2G)÷8M = 37回 → 晶石2,220個。ゲーム画面の「与ダメージが◯を超えた後、さらに◯与えるたびに」の数字を、開始 / ダメージ/回 に入れます。</p>
+</section>
+
+<section>
+  <h2>毎日の攻撃ボーナス</h2>
+  <div class="row">
+    <div><label>必要攻撃回数</label><input type="number" id="dl_need" min="1"></div>
+    <div><label>報酬名</label><input id="dl_item"></div>
+    <div><label>達成時の報酬数</label><input type="number" id="dl_reward" min="0"></div>
+    <div><label>攻撃できない曜日</label>
+      <select id="dl_off"><option value="-1">なし</option><option value="0">日曜</option><option value="1">月曜</option><option value="2">火曜</option><option value="3">水曜</option><option value="4">木曜</option><option value="5">金曜</option><option value="6">土曜</option></select></div>
+  </div>
+  <p class="hint">攻撃できない曜日にはダメージを入力できず、ボーナスも付きません。月末予測でもその曜日は除外します。</p>
+</section>
+
+<section>
+  <h2>晶石工場(鉱石)</h2>
+  <div class="row">
+    <div style="flex:0 0 100px"><label>使用</label><select id="f_on"><option value="1">する</option><option value="0">しない</option></select></div>
+    <div><label>報酬名</label><input id="f_item"></div>
+    <div><label>生産量</label><input type="number" id="f_per" min="0"></div>
+    <div><label>生産の単位時間(h)</label><input type="number" id="f_hours" min="1"></div>
+    <div><label>最大生産時間(h)</label><input type="number" id="f_max" min="1"></div>
+  </div>
+  <div class="cards" id="factorySum" style="margin-top:12px"></div>
+  <p class="hint">最大生産時間以内にこまめに回収する前提で計算します。初期値はLv.20(3時間で+90、最大72時間)です。</p>
+</section>
+
+<section id="dataSec" hidden>
+  <h2>データ</h2>
+  <div class="tools">
+    <button id="export">JSONで書き出し</button>
+    <button id="import">JSONを読み込み</button>
+    <button id="reset" class="del">全データ削除</button>
+  </div>
+  <p class="hint">データはこのブラウザ内(localStorage)に保存されます。</p>
+  <input type="file" id="file" accept="application/json" hidden>
+</section>
+</main>
+
+<script>
+const KEY = 'lw-boss-calc-v2';
+const G = 1e9, M = 1e6;
+const defaultRules = () => [
+  { name: '武器破壊',     start: '1.2G', end: '2.0G',  step: '8M',   item: '晶石', reward: 60 },
+  { name: '装甲破壊',     start: '2.0G', end: '5.0G',  step: '30M',  item: '晶石', reward: 60 },
+  { name: 'レーダー破壊', start: '5.0G', end: '7.2G',  step: '22M',  item: '晶石', reward: 60 },
+  { name: 'チップ破壊',   start: '7.2G', end: '14.0G', step: '68M',  item: '晶石', reward: 60 },
+  { name: 'ボス攻略',     start: '14.0G', end: '24.5G', step: '105M', item: '晶石', reward: 60 }
+];
+const defaultExtra = () => ({
+  daily: { item: '晶石', reward: 2500, need: 3, offDow: 0 },          // 毎日N回攻撃でreward、offDow曜日は攻撃不可
+  factory: { on: 1, item: '晶石', per: 90, hours: 3, maxHours: 72 } // 晶石工場
+});
+const defaults = () => ({ plan: "paid", weekStart: 1, rules: defaultRules(), days: {}, ...defaultExtra() });
+let state;
+try { state = JSON.parse(localStorage.getItem(KEY)) || defaults(); } catch { state = defaults(); }
+const migrate = () => { state.holdings = state.holdings || {}; state.plan = state.plan || "paid"; const d = defaultExtra(); state.daily = { ...d.daily, ...state.daily }; state.factory = { ...d.factory, ...state.factory }; };
+migrate();
+const save = () => { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch {} };
+const $ = id => document.getElementById(id);
+const fmt = n => Math.round(n).toLocaleString('ja-JP');
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+// "1.2G" "350M" "5000" → 数値
+function parseAmt(v) {
+  const m = String(v).trim().replace(/,/g, '').match(/^(\d+(?:\.\d+)?)\s*([kKmMgG]?)/);
+  if (!m) return 0;
+  const mul = { '': 1, k: 1e3, m: M, g: G }[m[2].toLowerCase()];
+  return Number(m[1]) * mul;
+}
+function fmtDmg(n) {
+  return (n / G).toFixed(2) + "G";
+}
+
+// 日付ユーティリティ(UTC計算でタイムゾーンずれ回避)
+const toT = s => { const [y, m, d] = s.split('-').map(Number); return Date.UTC(y, m - 1, d); };
+const toS = t => new Date(t).toISOString().slice(0, 10);
+const DAY = 86400000;
+const weekOf = s => { const t = toT(s), dow = new Date(t).getUTCDay(); return toS(t - ((dow - state.weekStart + 7) % 7) * DAY); };
+const today = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
+
+// 累計ダメージ cum に対する各ルールの達成回数
+function counts(cum) {
+  return state.rules.map(r => {
+    const s = parseAmt(r.start), e = parseAmt(r.end), st = parseAmt(r.step);
+    if (!st) return 0;
+    const x = Math.min(cum, e) - s;
+    return x > 0 ? Math.floor(x / st) : 0;
+  });
+}
+function gainFromCounts(cs) {
+  const out = {};
+  state.rules.forEach((r, i) => { if (r.item && cs[i]) out[r.item] = (out[r.item] || 0) + cs[i] * (Number(r.reward) || 0); });
+  return out;
+}
+const addTo = (a, b) => { for (const k in b) a[k] = (a[k] || 0) + b[k]; return a; };
+
+const dowOf = s => new Date(toT(s)).getUTCDay();
+const isOff = s => dowOf(s) === Number(state.daily.offDow);
+function bonusFor(d, att) {
+  const b = state.daily, out = {};
+  if (b.item && !isOff(d) && att >= Number(b.need)) out[b.item] = Number(b.reward) || 0;
+  return out;
+}
+// 晶石工場: 指定時間ぶんの獲得(回収間隔が最大生産時間を超えると効率が落ちる)
+function factoryOutput(hours) {
+  const f = state.factory; if (!Number(f.on) || !f.item) return 0;
+  const unit = Number(f.hours) || 1;
+  const eff = 1; // 最大生産時間以内に回収する前提
+  return (Number(f.per) || 0) / unit * hours * eff;
+}
+// dmgMap: {date: {dmg, att}} → 日ごとの {date, dmg, cum, gain}
+function simulate(dmgMap) {
+  const dates = Object.keys(dmgMap).sort();
+  const res = []; let wk = null, cum = 0; // cum = その週の最大ダメージ(週内で更新された分だけ報酬)
+  for (const d of dates) {
+    const w = weekOf(d);
+    if (w !== wk) { wk = w; cum = 0; }
+    const prev = counts(cum);
+    cum = Math.max(cum, dmgMap[d].dmg);
+    const now = counts(cum);
+    const wg = gainFromCounts(now.map((n, i) => n - prev[i]));
+    const bg = bonusFor(d, dmgMap[d].att);
+    res.push({ date: d, week: w, dmg: dmgMap[d].dmg, att: dmgMap[d].att, cum, counts: now,
+      wgain: wg, bgain: bg, gain: addTo({ ...wg }, bg) });
+  }
+  return res;
+}
+const sumGains = list => list.reduce((acc, r) => addTo(acc, r.gain), {});
+const gainText = g => Object.entries(g).map(([k, n]) => `${esc(k)} ${fmt(n)}`).join(' / ') || '-';
+
+// 手入力の既獲得(月×報酬名)
+const allItems = () => [...new Set([...state.rules.map(r => r.item), state.daily.item, state.factory.item].filter(Boolean))];
+function renderOffsets() {
+  const o = state.holdings || {};
+  $('offsets').innerHTML = allItems().map(it =>
+    `<div style="max-width:200px"><label>${esc(it)} 現在の保有数(K = 1000個。例: 53.7 → 53,700個)</label><input type="number" min="0" step="0.1" data-off="${esc(it)}" value="${o[it] !== undefined ? o[it] / 1000 : ''}" placeholder="0"></div>`).join('');
+}
+$('offsets').addEventListener('input', e => {
+  const it = e.target.dataset.off; if (it === undefined) return;
+  state.holdings = state.holdings || {};
+  if (e.target.value === "") delete state.holdings[it]; else state.holdings[it] = Math.round((Number(e.target.value) || 0) * 1000);
+  save(); render();
+});
+document.addEventListener('change', e => { if (!e.target.closest('#offsets')) renderOffsets(); });
+// 交換所(優先順位はこの並びのまま)
+const SHOP = {
+  paid: [['銀塊', 5000, 22], ['金塊', 5000, 6], ['高級パス', 5000, 2], ['特急パス', 20000, 2], ['戦争準備', 5000, 4], ['週間券', 20000, 1], ['ダイヤ', 500, 80]],
+  free: [['金塊', 5000, 6], ['高級パス', 5000, 2], ['特急パス', 20000, 2], ['銀塊', 5000, 22], ['戦争準備', 5000, 4], ['週間券', 20000, 1], ['ダイヤ', 500, 80]]
+};
+let lastTotals = { cur: 0, fin: 0 };
+const buyOf = (plan, name) => Math.max(0, Number(((state.buy || {})[plan] || {})[name]) || 0);
+function renderShopSum() {
+  const list = SHOP[state.plan] || SHOP.paid;
+  const used = list.reduce((s, [n, c]) => s + c * buyOf(state.plan, n), 0);
+  const { cur, fin } = lastTotals;
+  const bal = v => v >= 0 ? `残り ${fmt(v)}` : `<span style="color:var(--danger)">不足 ${fmt(-v)}</span>`;
+  $('shopSum').innerHTML = `選択分の必要晶石: <b>${fmt(used)}</b> / 現在 ${fmt(cur)}(${bal(cur - used)}) / 月末予測 ${fmt(fin)}(${bal(fin - used)})。全アイテムを上限まで買うのに必要な晶石: ${fmt(list.reduce((s, [, c, l]) => s + c * l, 0))}`;
+  $('shopNeedSum').textContent = fmt(list.reduce((s, [, c, l]) => s + c * l, 0));
+  $('shopBuySum').textContent = fmt(list.reduce((s, [n]) => s + buyOf(state.plan, n), 0));
+  $('shopUsedSum').textContent = fmt(used);
+  list.forEach(([n, c], i) => { const el = $('shopCost' + i); if (el) el.textContent = fmt(c * buyOf(state.plan, n)); });
+}
+function renderShop(got, pred) {
+  const list = SHOP[state.plan] || SHOP.paid;
+  lastTotals = { cur: got['晶石'] || 0, fin: pred['晶石'] || 0 };
+  if (!document.activeElement || !document.activeElement.dataset.buy) {
+    $('shop').innerHTML = list.map(([name, cost, limit], i) => {
+      const v = Math.min(buyOf(state.plan, name), limit);
+      const opts = Array.from({ length: limit + 1 }, (_, n) => `<option value="${n}"${n === v ? ' selected' : ''}>${n}</option>`).join('');
+      return `<tr><td class="num">${i + 1}</td><td>${esc(name)}</td><td class="num">${fmt(cost)}</td><td class="num">${limit}</td><td class="num">${fmt(cost * limit)}</td>
+       <td class="num"><select data-buy="${esc(name)}" style="width:80px">${opts}</select></td><td class="num" id="shopCost${i}">${fmt(cost * v)}</td></tr>`;
+    }).join('');
+  }
+  renderShopSum();
+}
+$('shop').addEventListener('change', e => {
+  const n = e.target.dataset.buy; if (n === undefined) return;
+  state.buy = state.buy || {}; state.buy[state.plan] = state.buy[state.plan] || {};
+  state.buy[state.plan][n] = Number(e.target.value); save(); renderShopSum();
+});
+$('autoBuy').onclick = () => {
+  const list = SHOP[state.plan]; let rem = lastTotals.fin;
+  state.buy = state.buy || {}; state.buy[state.plan] = {};
+  list.forEach(([name, cost, limit]) => { const n = Math.min(limit, Math.floor(rem / cost)); rem -= n * cost; state.buy[state.plan][name] = n; });
+  save(); $('shop').innerHTML = ''; render();
+};
+$('clearBuy').onclick = () => { state.buy = state.buy || {}; state.buy[state.plan] = {}; save(); render(); };
+function render() {
+  const month = $('month').value;
+  const [y, m] = month.split('-').map(Number);
+  const daysInMonth = new Date(Date.UTC(y, m, 0)).getUTCDate();
+  const dmgMap = {};
+  for (const [d, v] of Object.entries(state.days)) dmgMap[d] = { dmg: v.dmg, att: Number(state.daily.need) };
+
+  const actual = simulate(dmgMap);
+  const inMonth = actual.filter(r => r.date.startsWith(month));
+
+  // 予測: 入力済み最終日(月内)以降を平均で埋める
+  const attDays = inMonth.filter(r => r.dmg > 0);
+  const avg = attDays.length ? attDays.reduce((s, r) => s + r.dmg, 0) / attDays.length : 0;
+  const proj = { ...dmgMap };
+  if (inMonth.length) {
+    const last = inMonth[inMonth.length - 1].date;
+    for (let t = toT(last) + DAY; toS(t).startsWith(month) && t <= toT(`${month}-${String(daysInMonth).padStart(2,'0')}`); t += DAY)
+      if (!(toS(t) in proj) && !isOff(toS(t))) proj[toS(t)] = { dmg: avg, att: Number(state.daily.need) };
+  }
+  const projMonth = simulate(proj).filter(r => r.date.startsWith(month));
+
+  // 日次表
+  $('days').innerHTML = inMonth.length ? inMonth.map(r =>
+    `<tr><td>${r.date}</td><td class="num">${fmtDmg(r.dmg)}</td><td class="num">${fmtDmg(r.cum)}</td>
+     <td>${gainText(r.gain)}</td>
+     <td><button class="del" data-del="${r.date}">削除</button></td></tr>`).join('')
+    : '<tr><td colspan="5" style="color:var(--sub)">この月の入力はまだありません</td></tr>';
+
+  // 集計
+  const totalDmg = inMonth.reduce((s, r) => s + r.dmg, 0);
+  const sumKey = (list, k) => list.reduce((acc, r) => addTo(acc, r[k]), {});
+  const mStart = new Date(y, m - 1, 1).getTime(), mEnd = new Date(y, m, 1).getTime();
+  const elapsedH = Math.max(0, Math.min(Date.now(), mEnd) - mStart) / 3600000;
+  const fItem = state.factory.item, fOn = Number(state.factory.on) && fItem;
+  const fGot = fOn ? { [fItem]: factoryOutput(elapsedH) } : {};
+  const fPred = fOn ? { [fItem]: factoryOutput((mEnd - mStart) / 3600000) } : {};
+  $('factorySum').innerHTML = `<div class="stat"><div class="k">今月のこれまで(${m}月)</div><div class="v">${fmt(fGot[fItem] || 0)}</div></div><div class="stat"><div class="k">月末予測</div><div class="v">${fmt(fPred[fItem] || 0)}</div><div class="s">${fOn ? esc(fItem) : '未使用'}</div></div>`;
+  const srcs = [
+    ['週間ダメージ報酬', sumKey(inMonth, 'wgain'), sumKey(projMonth, 'wgain')],
+    ['毎日の攻撃ボーナス', sumKey(inMonth, 'bgain'), sumKey(projMonth, 'bgain')],
+    ['晶石工場', fGot, fPred]
+  ];
+  const got = srcs.reduce((a, s2) => addTo(a, s2[1]), {}), pred = srcs.reduce((a, s2) => addTo(a, s2[2]), {});
+  // 現在の保有数が入力されている報酬: 現在=保有数、月末予測=保有数+今後の獲得(予測−現在までの計算値)
+  for (const it of Object.keys(state.holdings || {})) {
+    const h = Number(state.holdings[it]); if (!isFinite(h)) continue;
+    const future = Math.max(0, (pred[it] || 0) - (got[it] || 0));
+    got[it] = h; pred[it] = h + future;
+  }
+  $('sources').innerHTML = srcs.map(([n, a, b]) => `<tr><td>${n}</td><td>${gainText(a)}</td><td>${gainText(b)}</td></tr>`).join('');
+  renderShop(got, pred);
+  $('summary').innerHTML = `
+    <div class="stat"><div class="k">月の最大ダメージ</div><div class="v">${fmtDmg(Math.max(0, ...inMonth.map(r => r.dmg)))}</div><div class="s">1日平均 ${fmtDmg(avg)}</div></div>`;
+  const items = [...new Set([...state.rules.map(r => r.item), state.daily.item, state.factory.item].filter(Boolean))];
+  $('itemTotals').innerHTML = items.length ? items.map(it =>
+    `<tr><td>${esc(it)}</td><td class="num">${fmt(got[it] || 0)}</td><td class="num"><b>${fmt(pred[it] || 0)}</b></td></tr>`).join('')
+    : '<tr><td colspan="3" style="color:var(--sub)">ルールを追加してください</td></tr>';
+
+  // 週表(月にかかる週。週全体の累計)
+  const weeks = {};
+  for (const r of actual) weeks[r.week] = r; // 週の最後の日が残る(最大ダメージ基準)
+  const monthStart = toT(`${month}-01`), monthEnd = monthStart + (daysInMonth - 1) * DAY;
+  const rows = Object.entries(weeks).filter(([w]) => toT(w) <= monthEnd && toT(w) + 6 * DAY >= monthStart);
+  $('weeks').innerHTML = rows.length ? rows.map(([w, r]) => {
+    const maxOf = rl => { const st = parseAmt(rl.step); return st ? Math.floor((parseAmt(rl.end) - parseAmt(rl.start)) / st) : 0; };
+    const c = r.counts.map((n, i) => !n ? '' : (n >= maxOf(state.rules[i]) ? `${esc(state.rules[i].name)} 上限` : `${esc(state.rules[i].name)}×${n}`)).filter(Boolean).join(' ');
+    return `<tr><td>${w}〜</td><td class="num">${fmtDmg(r.cum)}</td><td>${c || '-'}</td><td>${gainText(gainFromCounts(r.counts))}</td></tr>`;
+  }).join('') : '<tr><td colspan="4" style="color:var(--sub)">データなし</td></tr>';
+}
+
+const bind = (id, obj, key, num) => $(id).addEventListener('input', e => { state[obj][key] = num ? Number(e.target.value) : e.target.value; save(); render(); });
+function renderExtra() {
+  $('plan').value = state.plan;
+  const d = state.daily, f = state.factory;
+  $('dl_need').value = d.need; $('dl_item').value = d.item; $('dl_reward').value = d.reward; $('dl_off').value = d.offDow;
+  $('f_on').value = Number(f.on); $('f_item').value = f.item; $('f_per').value = f.per; $('f_hours').value = f.hours; $('f_max').value = f.maxHours;
+}
+bind('dl_need', 'daily', 'need', 1); bind('dl_item', 'daily', 'item'); bind('dl_reward', 'daily', 'reward', 1); bind('dl_off', 'daily', 'offDow', 1);
+bind('f_on', 'factory', 'on', 1); bind('f_item', 'factory', 'item'); bind('f_per', 'factory', 'per', 1);
+bind('f_hours', 'factory', 'hours', 1); bind('f_max', 'factory', 'maxHours', 1);
+
+let delMode = false;
+function renderRules() {
+
+  $('rules').innerHTML = state.rules.map((r, i) => {
+    const inp = (f, cls = '') => `<td class="${cls}"><input data-i="${i}" data-f="${f}" value="${esc(r[f])}"></td>`;
+    return `<tr>${inp('name')}${inp('start', 'num')}${inp('end', 'num')}${inp('step', 'num')}${inp('item')}${inp('reward', 'num')}
+      <td>${delMode ? `<button class="del" data-rdel="${i}">削除</button>` : ""}</td></tr>`;
+  }).join('');
+}
+
+$('rules').addEventListener('input', e => {
+  const t = e.target; if (!t.dataset.f) return;
+  state.rules[t.dataset.i][t.dataset.f] = t.value; save(); render();
+});
+$('rules').addEventListener('click', e => {
+  const i = e.target.dataset.rdel; if (i === undefined) return;
+  state.rules.splice(i, 1); save(); renderRules(); render();
+});
+$('plan').value = state.plan;
+$('plan').onchange = e => { state.plan = e.target.value; save(); render(); };
+$('addRule').onclick = () => { state.rules.push({ name: '', start: '', end: '', step: '', item: '晶石', reward: 60 }); save(); renderRules(); render(); };
+$('resetRules').onclick = () => { if (confirm('ルールを初期値に戻します。よろしいですか?')) { state.rules = defaultRules(); save(); renderRules(); render(); } };
+$('delMode').onclick = () => { delMode = !delMode; $('delMode').textContent = delMode ? '削除を終了' : '削除'; renderRules(); };
+
+$('addDay').onclick = () => {
+  const d = $('d_date').value, dmg = parseAmt(/^[\d.,]+$/.test($('d_dmg').value.trim()) ? $('d_dmg').value.trim() + 'G' : $('d_dmg').value);
+  if (!d || !dmg) { alert('日付とダメージ(例: 5.35G)を入力してください'); return; }
+  if (isOff(d)) { alert('この曜日は攻撃できないため入力できません'); return; }
+  state.days[d] = { dmg, att: Number(state.daily.need) };
+  save(); $('d_dmg').value = '';
+  $('month').value = d.slice(0, 7); render();
+};
+$('days').addEventListener('click', e => {
+  const d = e.target.dataset.del; if (!d) return;
+  delete state.days[d]; save(); render();
+});
+$('month').onchange = () => { renderOffsets(); render(); };
+
+$('saveBtn').onclick = () => { const s = $('dataSec'); s.hidden = !s.hidden; if (!s.hidden) s.scrollIntoView({ behavior: 'smooth' }); };
+$('export').onclick = () => {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' }));
+  a.download = 'boss-calc.json'; a.click(); URL.revokeObjectURL(a.href);
+};
+$('import').onclick = () => $('file').click();
+$('file').onchange = async e => {
+  try {
+    const d = JSON.parse(await e.target.files[0].text());
+    if (!Array.isArray(d.rules) || typeof d.days !== 'object' || d.weekStart === undefined) throw 0;
+    state = d; migrate(); save(); renderRules(); renderExtra(); renderOffsets(); render();
+  } catch { alert('読み込めないファイルです'); }
+  e.target.value = '';
+};
+$('reset').onclick = () => {
+  if (!confirm('全データを削除します。よろしいですか?')) return;
+  state = defaults(); save(); renderRules(); renderExtra(); renderOffsets(); render();
+};
+
+$('d_date').value = today();
+$('month').value = today().slice(0, 7);
+renderRules(); renderExtra(); renderOffsets(); render();
+</script>
+</body>
+</html>
