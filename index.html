@@ -24,6 +24,8 @@ table{width:100%;border-collapse:collapse;min-width:520px}
 th,td{text-align:left;padding:7px 6px;border-bottom:1px solid var(--line)}
 th{font-size:12px;color:var(--sub);font-weight:600}
 td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+.rulesTable th,.rulesTable td{text-align:center}
+.rulesTable input{text-align:center}
 .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px}
 .stat{border:1px solid var(--line);border-radius:8px;padding:10px 12px}
 .stat .k{font-size:12px;color:var(--sub)}
@@ -99,9 +101,9 @@ td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
 </section>
 
 <section>
-  <h2>報酬ルール(週間ダメージ報酬・毎週リセット)</h2>
-  <table>
-    <thead><tr><th>進行度名</th><th class="num">開始(超えた後)</th><th class="num">終了(進行度の上限)</th><th class="num">ダメージ/回</th><th>報酬名</th><th class="num">1回の報酬数</th><th></th></tr></thead>
+  <h2>報酬ルール(週間ダメージ報酬)</h2>
+  <table class="rulesTable">
+    <thead><tr><th>進行度名</th><th class="num">開始</th><th class="num">終了(進行度の上限)</th><th class="num">報酬上昇ダメージ数</th><th class="num">報酬数</th><th></th></tr></thead>
     <tbody id="rules"></tbody>
   </table>
   <div class="tools"><button id="editMode">編集</button><button id="addRule" hidden>+ ルール追加</button><button id="resetRules">初期値に戻す</button><button id="delMode" class="del">削除</button></div>
@@ -324,7 +326,7 @@ function render() {
   $('sources').innerHTML = srcs.map(([n, a, b]) => `<tr><td>${n}${note(n)}</td><td>${gainText(a)}</td><td>${gainText(b)}</td></tr>`).join('');
   renderShop(got, pred);
   $('summary').innerHTML = `
-    <div class="stat"><div class="k">月の最大ダメージ</div><div class="v">${fmtDmg(Math.max(0, ...inMonth.map(r => r.dmg)))}</div></div>`;
+    <div class="stat"><div class="k">現在の最大ダメージ</div><div class="v">${fmtDmg(Math.max(0, ...inMonth.map(r => r.dmg)))}</div></div>`;
   const items = [...new Set([...state.rules.map(r => r.item), state.daily.item, state.factory.item].filter(Boolean))];
   $('itemTotals').innerHTML = items.length ? items.map(it =>
     `<tr><td>${esc(it)}</td><td class="num">${fmt(got[it] || 0)}</td><td class="num"><b>${fmt(pred[it] || 0)}</b></td></tr>`).join('')
@@ -353,7 +355,7 @@ function renderRules() {
 
   $('rules').innerHTML = state.rules.map((r, i) => {
     const inp = (f, cls = '') => `<td class="${cls}"><input data-i="${i}" data-f="${f}" value="${esc(r[f])}"${editMode ? "" : " disabled"}></td>`;
-    return `<tr>${inp('name')}${inp('start', 'num')}${inp('end', 'num')}${inp('step', 'num')}${inp('item')}${inp('reward', 'num')}
+    return `<tr>${inp('name')}${inp('start', 'num')}${inp('end', 'num')}${inp('step', 'num')}${inp('reward', 'num')}
       <td>${delMode ? `<button class="del" data-rdel="${i}">削除</button>` : ""}</td></tr>`;
   }).join('');
 }
