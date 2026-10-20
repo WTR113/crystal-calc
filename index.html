@@ -54,7 +54,7 @@ td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
   </div>
   <h3 style="font-size:14px;margin:16px 0 6px">現在の保有数</h3>
   <div class="row" id="offsets"></div>
-  <p class="hint">現在の保有数を入れると、「現在までの獲得」はその数になり、月末予測は「保有数 + 今後の獲得(今日以降の工場・ボーナス・ダメージ報酬)」になります。空欄ならアプリの計算値のみを使います。</p>
+  <p class="hint">現在の保有数を入れると、「現在までの獲得」はその数になり、月末予測は「保有数 + 今後の獲得(今日以降の工場・ボーナス・ダメージ報酬)」になります。空欄なら月初めからの獲得数になります。</p>
   <table style="margin-top:14px">
     <thead><tr><th>報酬</th><th class="num">現在までの獲得</th><th class="num">月末予測</th></tr></thead>
     <tbody id="itemTotals"></tbody>
@@ -63,7 +63,7 @@ td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
     <thead><tr><th>内訳</th><th>現在まで</th><th>月末予測</th></tr></thead>
     <tbody id="sources"></tbody>
   </table>
-  <p class="hint">月末予測 = 入力済みの最終日より後の日(攻撃できない曜日を除く)を「入力済み日の平均の最大ダメージ」で埋めて、週ごとに再計算した値です。報酬は受け取れる回数が増えた日の月に計上します。晶石工場は時間経過で計算します(現在まで=今月の経過時間×1時間あたりの生産量、月末予測=月の全時間×同)。</p>
+  <p class="hint">月末予測 = 入力した最終日のダメージをもとに、週ごとに再計算した値です。晶石工場は時間経過で計算します(現在まで=今月の経過時間×1時間あたりの生産量、月末予測=月の全時間×同)。</p>
 </section>
 
 <section>
@@ -104,35 +104,11 @@ td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
     <thead><tr><th>進行度名</th><th class="num">開始(超えた後)</th><th class="num">終了(進行度の上限)</th><th class="num">ダメージ/回</th><th>報酬名</th><th class="num">1回の報酬数</th><th></th></tr></thead>
     <tbody id="rules"></tbody>
   </table>
-  <div class="tools"><button id="addRule">+ ルール追加</button><button id="resetRules">初期値に戻す</button><button id="delMode" class="del">削除</button></div>
+  <div class="tools"><button id="editMode">編集</button><button id="addRule" hidden>+ ルール追加</button><button id="resetRules">初期値に戻す</button><button id="delMode" class="del">削除</button></div>
   <p class="hint">数値は K / M / G(例: 1.2G, 8M)で入力できます。「開始を超えた後、ダメージが◯M増えるごとに報酬1回」。上限を超えた分は報酬になりません。</p>
-  <p class="hint">読み方(武器破壊の例): 最大ダメージが 1.2G を超えると報酬が出始め、そこから 8M 増えるごとに 1回(晶石60個)。2.0G で打ち止め(100回)。つまり 1.5G なら (1.5G−1.2G)÷8M = 37回 → 晶石2,220個。ゲーム画面の「与ダメージが◯を超えた後、さらに◯与えるたびに」の数字を、開始 / ダメージ/回 に入れます。</p>
+  <p class="hint">読み方(武器破壊の例): 最大ダメージが 1.2G を超えると報酬が出始め、そこから 8M 増えるごとに 1回(晶石60個)。2.0G で打ち止め(100回)。つまり 1.5G なら (1.5G−1.2G)÷8M = 37回 → 晶石2,220個。</p>
 </section>
 
-<section>
-  <h2>毎日の攻撃ボーナス</h2>
-  <div class="row">
-    <div><label>必要攻撃回数</label><input type="number" id="dl_need" min="1"></div>
-    <div><label>報酬名</label><input id="dl_item"></div>
-    <div><label>達成時の報酬数</label><input type="number" id="dl_reward" min="0"></div>
-    <div><label>攻撃できない曜日</label>
-      <select id="dl_off"><option value="-1">なし</option><option value="0">日曜</option><option value="1">月曜</option><option value="2">火曜</option><option value="3">水曜</option><option value="4">木曜</option><option value="5">金曜</option><option value="6">土曜</option></select></div>
-  </div>
-  <p class="hint">攻撃できない曜日にはダメージを入力できず、ボーナスも付きません。月末予測でもその曜日は除外します。</p>
-</section>
-
-<section>
-  <h2>晶石工場(鉱石)</h2>
-  <div class="row">
-    <div style="flex:0 0 100px"><label>使用</label><select id="f_on"><option value="1">する</option><option value="0">しない</option></select></div>
-    <div><label>報酬名</label><input id="f_item"></div>
-    <div><label>生産量</label><input type="number" id="f_per" min="0"></div>
-    <div><label>生産の単位時間(h)</label><input type="number" id="f_hours" min="1"></div>
-    <div><label>最大生産時間(h)</label><input type="number" id="f_max" min="1"></div>
-  </div>
-  <div class="cards" id="factorySum" style="margin-top:12px"></div>
-  <p class="hint">最大生産時間以内にこまめに回収する前提で計算します。初期値はLv.20(3時間で+90、最大72時間)です。</p>
-</section>
 
 <section id="dataSec" hidden>
   <h2>データ</h2>
@@ -331,7 +307,6 @@ function render() {
   const fItem = state.factory.item, fOn = Number(state.factory.on) && fItem;
   const fGot = fOn ? { [fItem]: factoryOutput(elapsedH) } : {};
   const fPred = fOn ? { [fItem]: factoryOutput((mEnd - mStart) / 3600000) } : {};
-  $('factorySum').innerHTML = `<div class="stat"><div class="k">今月のこれまで(${m}月)</div><div class="v">${fmt(fGot[fItem] || 0)}</div></div><div class="stat"><div class="k">月末予測</div><div class="v">${fmt(fPred[fItem] || 0)}</div><div class="s">${fOn ? esc(fItem) : '未使用'}</div></div>`;
   const srcs = [
     ['週間ダメージ報酬', sumKey(inMonth, 'wgain'), sumKey(projMonth, 'wgain')],
     ['毎日の攻撃ボーナス', sumKey(inMonth, 'bgain'), sumKey(projMonth, 'bgain')],
@@ -344,10 +319,12 @@ function render() {
     const future = Math.max(0, (pred[it] || 0) - (got[it] || 0));
     got[it] = h; pred[it] = h + future;
   }
-  $('sources').innerHTML = srcs.map(([n, a, b]) => `<tr><td>${n}</td><td>${gainText(a)}</td><td>${gainText(b)}</td></tr>`).join('');
+  const note = n => n === '週間ダメージ報酬' ? '<div class="hint" style="margin:0">最大ダメージで変動します</div>' : n === '毎日の攻撃ボーナス'
+    ? `<div class="hint" style="margin:0">毎日${state.daily.need}回攻撃すると晶石${fmt(state.daily.reward)}個</div>` : "";
+  $('sources').innerHTML = srcs.map(([n, a, b]) => `<tr><td>${n}${note(n)}</td><td>${gainText(a)}</td><td>${gainText(b)}</td></tr>`).join('');
   renderShop(got, pred);
   $('summary').innerHTML = `
-    <div class="stat"><div class="k">月の最大ダメージ</div><div class="v">${fmtDmg(Math.max(0, ...inMonth.map(r => r.dmg)))}</div><div class="s">1日平均 ${fmtDmg(avg)}</div></div>`;
+    <div class="stat"><div class="k">月の最大ダメージ</div><div class="v">${fmtDmg(Math.max(0, ...inMonth.map(r => r.dmg)))}</div></div>`;
   const items = [...new Set([...state.rules.map(r => r.item), state.daily.item, state.factory.item].filter(Boolean))];
   $('itemTotals').innerHTML = items.length ? items.map(it =>
     `<tr><td>${esc(it)}</td><td class="num">${fmt(got[it] || 0)}</td><td class="num"><b>${fmt(pred[it] || 0)}</b></td></tr>`).join('')
@@ -369,18 +346,13 @@ const bind = (id, obj, key, num) => $(id).addEventListener('input', e => { state
 function renderExtra() {
   $('plan').value = state.plan;
   const d = state.daily, f = state.factory;
-  $('dl_need').value = d.need; $('dl_item').value = d.item; $('dl_reward').value = d.reward; $('dl_off').value = d.offDow;
-  $('f_on').value = Number(f.on); $('f_item').value = f.item; $('f_per').value = f.per; $('f_hours').value = f.hours; $('f_max').value = f.maxHours;
 }
-bind('dl_need', 'daily', 'need', 1); bind('dl_item', 'daily', 'item'); bind('dl_reward', 'daily', 'reward', 1); bind('dl_off', 'daily', 'offDow', 1);
-bind('f_on', 'factory', 'on', 1); bind('f_item', 'factory', 'item'); bind('f_per', 'factory', 'per', 1);
-bind('f_hours', 'factory', 'hours', 1); bind('f_max', 'factory', 'maxHours', 1);
 
-let delMode = false;
+let delMode = false, editMode = false;
 function renderRules() {
 
   $('rules').innerHTML = state.rules.map((r, i) => {
-    const inp = (f, cls = '') => `<td class="${cls}"><input data-i="${i}" data-f="${f}" value="${esc(r[f])}"></td>`;
+    const inp = (f, cls = '') => `<td class="${cls}"><input data-i="${i}" data-f="${f}" value="${esc(r[f])}"${editMode ? "" : " disabled"}></td>`;
     return `<tr>${inp('name')}${inp('start', 'num')}${inp('end', 'num')}${inp('step', 'num')}${inp('item')}${inp('reward', 'num')}
       <td>${delMode ? `<button class="del" data-rdel="${i}">削除</button>` : ""}</td></tr>`;
   }).join('');
@@ -399,6 +371,7 @@ $('plan').onchange = e => { state.plan = e.target.value; save(); render(); };
 $('addRule').onclick = () => { state.rules.push({ name: '', start: '', end: '', step: '', item: '晶石', reward: 60 }); save(); renderRules(); render(); };
 $('resetRules').onclick = () => { if (confirm('ルールを初期値に戻します。よろしいですか?')) { state.rules = defaultRules(); save(); renderRules(); render(); } };
 $('delMode').onclick = () => { delMode = !delMode; $('delMode').textContent = delMode ? '削除を終了' : '削除'; renderRules(); };
+$('editMode').onclick = () => { editMode = !editMode; $('editMode').textContent = editMode ? '編集を終了' : '編集'; $('addRule').hidden = !editMode; renderRules(); };
 
 $('addDay').onclick = () => {
   const d = $('d_date').value, dmg = parseAmt(/^[\d.,]+$/.test($('d_dmg').value.trim()) ? $('d_dmg').value.trim() + 'G' : $('d_dmg').value);
