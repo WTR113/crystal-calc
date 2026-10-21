@@ -34,6 +34,11 @@ td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
 .stat .v{font-size:22px;font-weight:700;font-variant-numeric:tabular-nums}
 .stat .s{font-size:12px;color:var(--sub)}
 .hint{font-size:12px;color:var(--sub);margin:8px 0 0}
+.shopHead{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+.shopHead h2{margin:0}
+.infoBox{border:1px solid var(--line);border-radius:10px;padding:12px 16px;font-size:15px;line-height:1.7;min-width:250px;background:var(--bg);margin-left:auto}
+.infoBox b{font-size:17px}
+.infoTop{color:var(--danger);font-weight:700}
 @media (max-width:600px){
   main{padding:14px 10px 40px}
   .row>div{flex:1 1 100%}
@@ -81,13 +86,24 @@ td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
 </section>
 
 <section>
-  <h2>交換所の購入シミュレーション</h2>
-  <p class="hint" style="margin:-4px 0 12px">※あくまで参考用のシミュレーションです。実際の交換は、ゲーム内の状況に合わせて判断してください。</p>
-  <div class="row" style="margin-bottom:12px">
+  <div class="shopHead">
+    <div style="flex:1 1 260px">
+      <h2 style="margin-bottom:8px">交換所の購入シミュレーション</h2>
+    <p class="hint" style="margin:-4px 0 12px">※あくまで参考用のシミュレーションです。実際の交換は、ゲーム内の状況に合わせて判断してください。</p>
+  <div class="row" style="margin-bottom:8px">
     <div style="max-width:220px">
       <select id="plan"><option value="paid">課金者用</option><option value="free">無課金者用</option></select></div>
   </div>
   <p class="hint" style="margin:-4px 0 12px">プラン(課金者用・無課金者用)を条件に、交換する優先順位が切り替わります。</p>
+    </div>
+    <div class="infoBox">
+      <b>銀塊の使い道</b>
+      <div class="infoTop">毎月、銀塊は最大27枚使用可能</div>
+      <div>百発百中: 5枚</div>
+      <div>閃金交換所: 6+10枚</div>
+      <div>賞金稼ぎ: 6枚</div>
+    </div>
+  </div>
   <table>
     <thead><tr><th class="num">優先順位</th><th>アイテム</th><th class="num">紫晶石数</th><th class="num">上限数</th><th class="num">必要紫晶石数</th><th class="num">購入数(選択)</th><th class="num">使用する晶石</th></tr></thead>
     <tbody id="shop"></tbody>
@@ -271,8 +287,8 @@ $('offsets').addEventListener('input', e => {
 document.addEventListener('change', e => { if (!e.target.closest('#offsets')) renderOffsets(); });
 // 交換所(優先順位はこの並びのまま)
 const SHOP = {
-  paid: [['銀塊', 5000, 22], ['金塊', 5000, 6], ['高級パス', 5000, 2], ['特急パス', 20000, 2], ['戦争準備', 5000, 4], ['週間券', 20000, 1], ['ダイヤ', 500, 80]],
-  free: [['金塊', 5000, 6], ['高級パス', 5000, 2], ['特急パス', 20000, 2], ['銀塊', 5000, 22], ['戦争準備', 5000, 4], ['週間券', 20000, 1], ['ダイヤ', 500, 80]]
+  paid: [['銀塊', 5000, 30], ['金塊', 5000, 6], ['高級パス', 5000, 2], ['特急パス', 20000, 2], ['戦争準備', 5000, 6], ['週間券', 20000, 1], ['ダイヤ', 500, 80]],
+  free: [['金塊', 5000, 6], ['高級パス', 5000, 2], ['特急パス', 20000, 2], ['銀塊', 5000, 30], ['戦争準備', 5000, 6], ['週間券', 20000, 1], ['ダイヤ', 500, 80]]
 };
 let lastTotals = { cur: 0, fin: 0 };
 const buyOf = (plan, name) => Math.max(0, Number(((state.buy || {})[plan] || {})[name]) || 0);
