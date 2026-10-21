@@ -69,10 +69,7 @@ td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
   <h3 style="font-size:14px;margin:16px 0 6px">現在の保有数</h3>
   <div class="row" id="offsets"></div>
   <p class="hint">現在の保有数を入れると、「現在までの獲得」はその数になり、月末予測は「保有数 + 今後の獲得(今日以降の工場・ボーナス・ダメージ報酬)」になります。空欄なら月初めからの獲得数になります。</p>
-  <table style="margin-top:14px">
-    <thead><tr><th>報酬</th><th class="num">現在までの獲得</th><th class="num">月末予測</th></tr></thead>
-    <tbody id="itemTotals"></tbody>
-  </table>
+  <div class="cards" id="itemTotals" style="margin-top:14px"></div>
   <table style="margin-top:14px">
     <thead><tr><th>内訳</th><th>現在まで</th><th>月末予測</th></tr></thead>
     <tbody id="sources"></tbody>
@@ -363,8 +360,9 @@ function render() {
     <div class="stat"><div class="k">現在の最大ダメージ</div><div class="v">${fmtDmg(Math.max(0, ...inMonth.map(r => r.dmg)))}</div></div>`;
   const items = [...new Set([...state.rules.map(r => r.item), state.daily.item, state.factory.item].filter(Boolean))];
   $('itemTotals').innerHTML = items.length ? items.map(it =>
-    `<tr><td>${esc(it)}</td><td class="num">${fmt(got[it] || 0)}</td><td class="num"><b>${fmt(pred[it] || 0)}</b></td></tr>`).join('')
-    : '<tr><td colspan="3" style="color:var(--sub)">ルールを追加してください</td></tr>';
+    `<div class="stat"><div class="k">現在までの獲得</div><div class="v">${fmt(got[it] || 0)}</div><div class="s">${esc(it)}</div></div>` +
+    `<div class="stat"><div class="k">月末予測</div><div class="v">${fmt(pred[it] || 0)}</div><div class="s">${esc(it)}</div></div>`).join('')
+    : '<div class="stat"><div class="k">ルールを追加してください</div></div>';
 
   // 週表(月にかかる週。週全体の累計)
   const weeks = {};
