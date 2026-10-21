@@ -20,14 +20,15 @@ button{font:inherit;border:1px solid var(--line);background:var(--card);color:va
 button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
 button.del{color:var(--danger)}
 .row{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}
-.row>div{flex:1 1 130px}
+.row>div{flex:1 1 130px;min-width:0}
+input[type=date],input[type=month]{min-width:0;max-width:100%;-webkit-appearance:none;appearance:none}
 table{width:100%;border-collapse:collapse;min-width:520px}
 th,td{text-align:left;padding:7px 6px;border-bottom:1px solid var(--line)}
 th{font-size:12px;color:var(--sub);font-weight:600}
 td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
 .rulesTable th,.rulesTable td{text-align:center}
 .rulesTable input{text-align:center}
-.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
 .stat{border:1px solid var(--line);border-radius:8px;padding:10px 12px}
 .stat .k{font-size:12px;color:var(--sub)}
 .stat .v{font-size:22px;font-weight:700;font-variant-numeric:tabular-nums}
@@ -35,6 +36,8 @@ td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
 .hint{font-size:12px;color:var(--sub);margin:8px 0 0}
 @media (max-width:600px){
   main{padding:14px 10px 40px}
+  .row>div{flex:1 1 100%}
+  #addDay{width:100%}
   section{padding:12px}
   table{min-width:0}
   th,td{padding:6px 2px;font-size:12px}
