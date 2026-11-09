@@ -191,12 +191,14 @@ const defaultRules = () => [
 ];
 const defaultExtra = () => ({
   daily: { item: '晶石', reward: 2500, need: 3, offDow: 0 },          // 毎日N回攻撃でreward、offDow曜日は攻撃不可
-  factory: { on: 1, item: '晶石', per: 90, hours: 3, maxHours: 72 } // 晶石工場
+  factory: { on: 1, item: '晶石', per: 147, hours: 3, maxHours: 82 } // 晶石工場
 });
 const defaults = () => ({ plan: "paid", weekStart: 1, rules: defaultRules(), days: {}, ...defaultExtra() });
 let state;
 try { state = JSON.parse(localStorage.getItem(KEY)) || defaults(); } catch { state = defaults(); }
-const migrate = () => { state.holdings = state.holdings || {}; state.plan = state.plan || "paid"; const d = defaultExtra(); state.daily = { ...d.daily, ...state.daily }; state.factory = { ...d.factory, ...state.factory }; };
+const migrate = () => { state.holdings = state.holdings || {}; state.plan = state.plan || "paid"; const d = defaultExtra(); state.daily = { ...d.daily, ...state.daily }; state.factory = { ...d.factory, ...state.factory };
+  // 仕様更新(晶石工場 Lv.25)に合わせて、古い保存値を新しい初期値へ切り替える
+  if (state.ver !== 2) { state.factory = { ...d.factory }; state.ver = 2; try { localStorage.setItem(KEY, JSON.stringify(state)); } catch {} } };
 migrate();
 const save = () => { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch {} };
 const $ = id => document.getElementById(id);
@@ -287,8 +289,8 @@ $('offsets').addEventListener('input', e => {
 document.addEventListener('change', e => { if (!e.target.closest('#offsets')) renderOffsets(); });
 // 交換所(優先順位はこの並びのまま)
 const SHOP = {
-  paid: [['銀塊', 5000, 30], ['金塊', 5000, 6], ['高級パス', 5000, 2], ['特急パス', 20000, 2], ['戦争準備', 5000, 6], ['週間券', 20000, 1], ['ダイヤ', 500, 80]],
-  free: [['金塊', 5000, 6], ['高級パス', 5000, 2], ['特急パス', 20000, 2], ['銀塊', 5000, 30], ['戦争準備', 5000, 6], ['週間券', 20000, 1], ['ダイヤ', 500, 80]]
+  paid: [['銀塊', 5000, 30], ['金塊', 5000, 12], ['高級パス', 5000, 4], ['特急パス', 20000, 2], ['戦争準備', 5000, 6], ['週間券', 20000, 1], ['ダイヤ', 500, 80]],
+  free: [['金塊', 5000, 12], ['高級パス', 5000, 4], ['特急パス', 20000, 2], ['銀塊', 5000, 30], ['戦争準備', 5000, 6], ['週間券', 20000, 1], ['ダイヤ', 500, 80]]
 };
 let lastTotals = { cur: 0, fin: 0 };
 const buyOf = (plan, name) => Math.max(0, Number(((state.buy || {})[plan] || {})[name]) || 0);
