@@ -87,7 +87,7 @@ main{padding-bottom:96px}
   </div>
   <div class="row" style="margin-bottom:12px">
     <div id="offsets" style="display:contents"></div>
-    <div><label>その日の最大ダメージ(例: 5.35G)</label><input type="text" id="d_dmg" placeholder="例: 5.35G"></div>
+    <div><label>その日の最大ダメージ(例: 5.35)</label><input type="text" id="d_dmg" placeholder="例: 5.35(Gは省略)"></div>
     <div style="flex:0 0 auto"><button class="primary" id="addDay">追加/更新</button></div>
   </div>
   <p class="hint">現在の保有数を入れると、「現在までの獲得」はその数になり、月末予測は「保有数 + 今後の獲得(今日以降の工場・ボーナス・ダメージ報酬)」になります。空欄なら月初めからの獲得数になります。</p>
@@ -325,7 +325,7 @@ const allItems = () => [...new Set([...state.rules.map(r => r.item), state.daily
 function renderOffsets() {
   const o = state.holdings || {};
   $('offsets').innerHTML = allItems().map(it =>
-    `<div style="max-width:200px"><label>${esc(it)} 現在の保有数(K = 1000個。例: 53.7 → 53,700個)</label><input type="number" min="0" step="0.1" data-off="${esc(it)}" value="${o[it] !== undefined ? o[it] / 1000 : ''}" placeholder="例: 53.7"></div>`).join('');
+    `<div style="max-width:200px"><label>${esc(it)} 現在の保有数(例: 53.7)</label><input type="number" min="0" step="0.1" data-off="${esc(it)}" value="${o[it] !== undefined ? o[it] / 1000 : ''}" placeholder="例: 53.7(Kは省略)"></div>`).join('');
 }
 $('offsets').addEventListener('input', e => {
   const it = e.target.dataset.off; if (it === undefined) return;
@@ -499,7 +499,7 @@ $('editMode').onclick = () => { editMode = !editMode; $('editMode').textContent 
 
 $('addDay').onclick = () => {
   const d = $('d_date').value, dmg = parseAmt(/^[\d.,]+$/.test($('d_dmg').value.trim()) ? $('d_dmg').value.trim() + 'G' : $('d_dmg').value);
-  if (!d || !dmg) { alert('日付とダメージ(例: 5.35G)を入力してください'); return; }
+  if (!d || !dmg) { alert('日付とダメージ(例: 5.35)を入力してください'); return; }
   if (isOff(d)) { alert('この曜日は攻撃できないため入力できません'); return; }
   state.days[d] = { dmg, att: Number(state.daily.need) };
   save(); $('d_dmg').value = '';
@@ -540,25 +540,25 @@ $('reset').onclick = () => {
 };
 
 // 月累計の画像: 「毎日その最大ダメージを出し続けた場合」の月間獲得(ルール・毎日ボーナス・晶石工場から算出)
-function monthTotalAt(dmg, month) {
-  const [y, m] = month.split('-').map(Number);
-  const n = new Date(Date.UTC(y, m, 0)).getUTCDate(), map = {};
-  for (let d = 1; d <= n; d++) {
-    const s = `${month}-${String(d).padStart(2, '0')}`;
-    if (!isOff(s)) map[s] = { dmg, att: Number(state.daily.need) };
-  }
-  const item = state.factory.item || '晶石';
-  let sum = 0;
-  for (const r of simulate(map)) sum += (r.gain['晶石'] || 0);
-  if (Number(state.factory.on) && state.factory.item === '晶石') sum += factoryOutput(n * 24);
-  if (state.duel.item === '晶石') sum += duelOutput(month, `${month}-31`);
-  return sum;
+// 4週(28日)モデル: 毎日(攻撃できない曜日を除く)その最大ダメージを出し続けた場合の合計
+// 引数 D は日数(7=1週, 30=月)。確定値で計算:
+//   30日 = 日曜4回 → 攻撃日26日、ダメージ報酬は4週分、工場は30日(720h)
+//   7日  = 攻撃日6日、ダメージ報酬は1週分、工場は7日
+function monthTotalAt(dmg, D = 30) {
+  const hasOff = Number(state.daily.offDow) >= 0;
+  const W = Math.floor(D / 7);                                  // 週数(30日→4)
+  const days = D - (hasOff ? Math.floor(D / 7) : 0);            // 攻撃日数(30日→26, 7日→6)
+  let sum = (gainFromCounts(counts(dmg))['晶石'] || 0) * W;               // 週間ダメージ報酬
+  if (state.daily.item === '晶石') sum += days * (Number(state.daily.reward) || 0);   // 毎日の攻撃ボーナス
+  if (Number(state.factory.on) && state.factory.item === '晶石') sum += factoryOutput(D * 24); // 晶石工場
+  if (Number(state.duel.on) && state.duel.item === '晶石') sum += days * (Number(state.duel.reward) || 0); // 連盟対決
+  return Math.round(sum);
 }
 $('makeImg').onclick = () => {
   const month = $('month').value, [y, m] = month.split('-').map(Number);
   const maxNow = Math.max(0, ...Object.entries(state.days).filter(([d]) => d.startsWith(month)).map(([, v]) => v.dmg));
   const rows = state.rules.map(r => parseAmt(r.end)).filter(v => v > 0).sort((a, b) => a - b)
-    .map(v => ({ label: (v / G).toFixed(1) + 'G', val: Math.round(monthTotalAt(v, month) / 1000) + 'k/月', hit: maxNow >= v }));
+    .map(v => ({ label: (v / G).toFixed(1) + 'G', w1: fmt(monthTotalAt(v, 7)), w4: fmt(monthTotalAt(v, 30)), hit: maxNow >= v }));
   const W = 1280, H = 720, c = document.createElement('canvas'); c.width = W; c.height = H;
   const x = c.getContext('2d'), F = '"Hiragino Sans","Yu Gothic","Meiryo","Noto Sans JP",sans-serif';
   const bg = x.createLinearGradient(0, 0, W, H); bg.addColorStop(0, '#f4f7fc'); bg.addColorStop(1, '#dfe8f5');
@@ -566,14 +566,21 @@ $('makeImg').onclick = () => {
   x.fillStyle = '#fff'; x.fillRect(120, 50, 1040, 110);   // タイトル枠
   x.fillRect(120, 175, 1040, 490);                          // 本文枠
   x.fillStyle = '#222'; x.textBaseline = 'middle';
-  x.font = `bold 64px ${F}`; x.fillText('【月累計】紫晶石量', 170, 108);
+  x.font = `bold 64px ${F}`; x.fillText('【累計】紫晶石量', 170, 108);
   x.font = `bold 38px ${F}`; x.fillText('最大ダメージ量ごと', 170, 235);
+  const X1 = 220, X2 = 707, X3 = 1100;   // 列の右端(ダメージ列は左寄せ)
+  x.font = `bold 30px ${F}`; x.fillStyle = '#555'; x.textAlign = 'right';
+  x.fillText('週累計(1W)', X2, 292); x.fillText('月累計(30日)', X3, 292);
+  x.textAlign = 'left'; x.fillText('ダメージ', 170, 292);
+  x.fillStyle = '#ccd'; x.fillRect(165, 318, 950, 2);
   rows.forEach((r, i) => {
-    const cy = 318 + i * 68; x.font = `bold 44px ${F}`;
-    const text = `${r.label}:  ${r.val}`, w = x.measureText(text).width;
-    if (r.hit) { x.fillStyle = '#ffee33'; x.fillRect(165, cy - 34, w + 30, 64); }
-    x.fillStyle = r.hit ? '#e60012' : '#222'; x.fillText(text, 180, cy);
+    const cy = 372 + i * 62; x.font = `bold 44px ${F}`;
+    if (r.hit) { x.fillStyle = '#ffee33'; x.fillRect(165, cy - 30, 950, 58); }
+    x.fillStyle = r.hit ? '#e60012' : '#222';
+    x.textAlign = 'left'; x.fillText(r.label, 180, cy);
+    x.textAlign = 'right'; x.fillText(r.w1, X2, cy); x.fillText(r.w4, X3, cy);
   });
+  x.textAlign = 'left';
   const url = c.toDataURL('image/png');
   $('imgPrev').src = url; $('imgDl').href = url; $('imgBox').hidden = false;
 };
