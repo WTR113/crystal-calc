@@ -575,8 +575,7 @@ $('makeImg').onclick = () => {
   x.fillStyle = '#ccd'; x.fillRect(165, 318, 950, 2);
   rows.forEach((r, i) => {
     const cy = 372 + i * 62; x.font = `bold 44px ${F}`;
-    if (r.hit) { x.fillStyle = '#ffee33'; x.fillRect(165, cy - 30, 950, 58); }
-    x.fillStyle = r.hit ? '#e60012' : '#222';
+    x.fillStyle = '#222';
     x.textAlign = 'left'; x.fillText(r.label, 180, cy);
     x.textAlign = 'right'; x.fillText(r.w1, X2, cy); x.fillText(r.w4, X3, cy);
   });
